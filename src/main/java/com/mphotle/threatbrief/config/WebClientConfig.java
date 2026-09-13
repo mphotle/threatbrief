@@ -11,7 +11,7 @@ public class WebClientConfig {
     public WebClient nvdWebClient() {
         return WebClient.builder()
                 .baseUrl("https://services.nvd.nist.gov/rest/json/cves/2.0")
-                .defaultHeader("User-Agent", "TheatBrief-App")
+                .defaultHeader("User-Agent", "ThreatBrief-App")
                 .build();
     }
 }
