@@ -102,7 +102,7 @@ class NvdServiceTest {
                 .setBody(completeMockJsonResponseBody));
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
-        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate);
+        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
 
         assertThat(response.date()).isEqualTo(targetDate);
         assertThat(response.totalCount()).isEqualTo(1);
@@ -134,7 +134,7 @@ class NvdServiceTest {
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
 
-        assertThatThrownBy(() -> nvdService.fetchVulnerabilitiesForDate(targetDate))
+        assertThatThrownBy(() -> nvdService.fetchVulnerabilitiesForDate(targetDate).block())
                 .isInstanceOf(NvdRateLimitExceededException.class)
                 .hasMessage("NVD API rate limit exceeded.");
 
@@ -149,7 +149,7 @@ class NvdServiceTest {
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
 
-        assertThatThrownBy(() -> nvdService.fetchVulnerabilitiesForDate(targetDate))
+        assertThatThrownBy(() -> nvdService.fetchVulnerabilitiesForDate(targetDate).block())
                 .isInstanceOf(NvdClientException.class)
                 .hasMessageContaining("NVD API client error: Status 400");
 
@@ -164,7 +164,7 @@ class NvdServiceTest {
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
 
-        assertThatThrownBy(() -> nvdService.fetchVulnerabilitiesForDate(targetDate))
+        assertThatThrownBy(() -> nvdService.fetchVulnerabilitiesForDate(targetDate).block())
                 .isInstanceOf(NvdClientException.class)
                 .hasMessageContaining("NVD API client error: Status 404");
 
@@ -182,7 +182,7 @@ class NvdServiceTest {
                 .setBody(completeMockJsonResponseBody));
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
-        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate);
+        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
 
         assertThat(response.date()).isEqualTo(targetDate);
         assertThat(response.totalCount()).isEqualTo(1);

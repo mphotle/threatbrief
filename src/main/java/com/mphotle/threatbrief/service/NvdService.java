@@ -31,7 +31,7 @@ public class NvdService {
         this.nvdResponseParser = nvdResponseParser;
     }
 
-    public DailyVulnerabilities fetchVulnerabilitiesForDate(LocalDate date) {
+    public Mono<DailyVulnerabilities> fetchVulnerabilitiesForDate(LocalDate date) {
         String startDateTime = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
         String endDateTime = date.atTime(23, 59, 59).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
 
@@ -42,12 +42,10 @@ public class NvdService {
                         .build())
                 .retrieve();
 
-        String rawJsonResponse = applyErrorStatusHandlers(responseSpec)
+        return applyErrorStatusHandlers(responseSpec)
                 .bodyToMono(String.class)
                 .transform(this::applyResilience)
-                .block();
-
-        return nvdResponseParser.parse(rawJsonResponse, date);
+                .map(rawJson -> nvdResponseParser.parse(rawJson, date));
     }
 
     private ResponseSpec applyErrorStatusHandlers(ResponseSpec responseSpec) {
