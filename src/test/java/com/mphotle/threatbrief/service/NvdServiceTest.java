@@ -1,9 +1,15 @@
 package com.mphotle.threatbrief.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mphotle.threatbrief.config.JacksonConfig;
 import com.mphotle.threatbrief.exception.NvdClientException;
 import com.mphotle.threatbrief.exception.NvdRateLimitExceededException;
 import com.mphotle.threatbrief.exception.NvdServerException;
 import com.mphotle.threatbrief.exception.NvdServiceException;
+import com.mphotle.threatbrief.model.DailyVulnerabilities;
+import com.mphotle.threatbrief.model.VulnerabilityItem;
+import com.mphotle.threatbrief.parser.NvdResponseParser;
+
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -35,6 +41,38 @@ class NvdServiceTest {
 
     private MockWebServer mockWebServer;
     private NvdService nvdService;
+    private String completeMockJsonResponseBody = """
+                {
+                    "resultsPerPage": 1,
+                    "startIndex": 0,
+                    "totalResults": 1,
+                    "vulnerabilities": [
+                        {
+                            "cve": {
+                                "id": "CVE-2026-0001",
+                                "vulnStatus": "Analyzed",
+                                "descriptions": [
+                                    {
+                                        "lang": "en",
+                                        "value": "Legacy vulnerability."
+                                    }
+                                ],
+                                "metrics": {
+                                    "cvssMetricV2": [
+                                        {
+                                            "type": "Primary",
+                                            "baseSeverity": "HIGH",
+                                            "cvssData": {
+                                                "baseScore": 7.5
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+                """;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -45,7 +83,10 @@ class NvdServiceTest {
                 .baseUrl(mockWebServer.url("/rest/json/cves/2.0").toString())
                 .build();
 
-        nvdService = new NvdService(webClient);
+        ObjectMapper objectMapper = new JacksonConfig().objectMapper();
+        NvdResponseParser parser = new NvdResponseParser(objectMapper);
+
+        nvdService = new NvdService(webClient, parser);
     }
 
     @AfterEach
@@ -54,32 +95,25 @@ class NvdServiceTest {
     }
 
     @Test
-    void fetchVulnerabilitiesForDate_when_date_is_valid_returns_cve_json_payload() throws InterruptedException {
-        String mockResponseBody = """
-                {
-                    "resultsPerPage": 1,
-                    "startIndex": 0,
-                    "totalResults": 1,
-                    "vulnerabilities": [
-                        {
-                            "cve": {
-                                "id": "CVE-2026-0001",
-                                "vulnStatus": "Analyzed"
-                            }
-                        }
-                    ]
-                }
-                """;
-
+    void fetchVulnerabilitiesForDate_when_date_is_valid_returns_cve_json_payload() throws InterruptedException { 
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody(mockResponseBody));
+                .setBody(completeMockJsonResponseBody));
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
-        String response = nvdService.fetchVulnerabilitiesForDate(targetDate);
+        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate);
 
-        assertThat(response).isEqualTo(mockResponseBody);
+        assertThat(response.date()).isEqualTo(targetDate);
+        assertThat(response.totalCount()).isEqualTo(1);
+        assertThat(response.items().size()).isEqualTo(1);
+
+        for (VulnerabilityItem item : response.items()) {
+            assertThat(item.id()).isEqualTo("CVE-2026-0001");
+            assertThat(item.severity()).isEqualTo("HIGH");
+            assertThat(item.score()).isEqualTo(7.5);
+            assertThat(item.description()).isEqualTo("Legacy vulnerability.");
+        }
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertThat(recordedRequest.getMethod()).isEqualTo("GET");
@@ -145,12 +179,16 @@ class NvdServiceTest {
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\"vulnerabilities\": []}"));
+                .setBody(completeMockJsonResponseBody));
 
         LocalDate targetDate = LocalDate.of(2026, 9, 8);
-        String response = nvdService.fetchVulnerabilitiesForDate(targetDate);
+        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate);
 
-        assertThat(response).isEqualTo("{\"vulnerabilities\": []}");
+        assertThat(response.date()).isEqualTo(targetDate);
+        assertThat(response.totalCount()).isEqualTo(1);
+        assertThat(response.items().size()).isEqualTo(1);
+        // We do not need to assert all the response values to satisfy this test case
+
         assertThat(mockWebServer.getRequestCount()).isEqualTo(2);
     }
 

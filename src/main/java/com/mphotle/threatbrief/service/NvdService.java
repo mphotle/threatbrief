@@ -10,6 +10,8 @@ import com.mphotle.threatbrief.exception.NvdClientException;
 import com.mphotle.threatbrief.exception.NvdRateLimitExceededException;
 import com.mphotle.threatbrief.exception.NvdServerException;
 import com.mphotle.threatbrief.exception.NvdServiceException;
+import com.mphotle.threatbrief.model.DailyVulnerabilities;
+import com.mphotle.threatbrief.parser.NvdResponseParser;
 
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -22,12 +24,14 @@ import java.time.format.DateTimeFormatter;
 public class NvdService {
 
     private final WebClient nvdWebClient;
+    private final NvdResponseParser nvdResponseParser;
 
-    public NvdService(WebClient nvdWebClient) {
+    public NvdService(WebClient nvdWebClient, NvdResponseParser nvdResponseParser) {
         this.nvdWebClient = nvdWebClient;
+        this.nvdResponseParser = nvdResponseParser;
     }
 
-    public String fetchVulnerabilitiesForDate(LocalDate date) {
+    public DailyVulnerabilities fetchVulnerabilitiesForDate(LocalDate date) {
         String startDateTime = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
         String endDateTime = date.atTime(23, 59, 59).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
 
@@ -38,10 +42,12 @@ public class NvdService {
                         .build())
                 .retrieve();
 
-        return applyErrorStatusHandlers(responseSpec)
+        String rawJsonResponse = applyErrorStatusHandlers(responseSpec)
                 .bodyToMono(String.class)
                 .transform(this::applyResilience)
                 .block();
+
+        return nvdResponseParser.parse(rawJsonResponse, date);
     }
 
     private ResponseSpec applyErrorStatusHandlers(ResponseSpec responseSpec) {
