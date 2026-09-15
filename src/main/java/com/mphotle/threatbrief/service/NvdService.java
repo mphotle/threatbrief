@@ -1,7 +1,6 @@
 package com.mphotle.threatbrief.service;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
@@ -50,11 +49,16 @@ public class NvdService {
                 .onStatus(status -> status.isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS), response -> 
                     Mono.error(new NvdRateLimitExceededException("NVD API rate limit exceeded."))
                 )
-                .onStatus(HttpStatusCode::is4xxClientError, response -> 
-                    Mono.error(new NvdClientException("NVD API client error: Status " + response.statusCode()))
+                .onStatus(status -> status.is4xxClientError(), response ->
+                    response.createException().flatMap(exception ->
+                        Mono.error(new NvdClientException("NVD API client error: Status " + response.statusCode(), exception))
+                    )
                 )
-                .onStatus(HttpStatusCode::is5xxServerError, response -> 
-                    Mono.error(new NvdServerException("NVD API server error. Downstream unavailable.")));
+                .onStatus(status -> status.is5xxServerError(), response -> 
+                    response.createException().flatMap(exception ->
+                        Mono.error(new NvdServerException("NVD API server error. Downstream unavailable. Status " + response.statusCode(), exception))
+                    )
+                );
     }
 
     private <T> Mono<T> applyResilience(Mono<T> mono) {
@@ -63,8 +67,8 @@ public class NvdService {
                     .filter(throwable -> throwable instanceof NvdServerException)
                     .maxBackoff(Duration.ofSeconds(10))
                 )
-                .onErrorMap(WebClientResponseException.class, ex -> 
-                    new NvdServiceException("Network failure connecting to NVD API: " + ex.getMessage())
+                .onErrorMap(WebClientResponseException.class, exception -> 
+                    new NvdServiceException("Network failure connecting to NVD API: " + exception.getMessage(), exception)
                 );
     }
 
