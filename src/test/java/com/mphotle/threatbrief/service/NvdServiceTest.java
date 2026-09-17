@@ -43,6 +43,8 @@ class NvdServiceTest {
 
     private MockWebServer mockWebServer;
     private NvdService nvdService;
+    private Cache<LocalDate, DailyVulnerabilities> cache;
+
     private String completeMockJsonResponseBody = """
                 {
                     "resultsPerPage": 1,
@@ -76,6 +78,15 @@ class NvdServiceTest {
                 }
                 """;
 
+    private String emptyMockJsonResponseBody = """
+                {
+                    "resultsPerPage": 0,
+                    "startIndex": 0,
+                    "totalResults": 0,
+                    "vulnerabilities": []
+                }
+                """;
+
     @BeforeEach
     void setUp() throws IOException {
         mockWebServer = new MockWebServer();
@@ -88,7 +99,7 @@ class NvdServiceTest {
         ObjectMapper objectMapper = new JacksonConfig().objectMapper();
         NvdResponseParser parser = new NvdResponseParser(objectMapper);
 
-        Cache<LocalDate, DailyVulnerabilities> cache = CacheConfig.dailyVulnerabilitiesCache();
+        cache = CacheConfig.dailyVulnerabilitiesCache();
 
         nvdService = new NvdService(webClient, parser, cache);
     }
@@ -130,21 +141,38 @@ class NvdServiceTest {
     }
 
     @Test
-void fetchVulnerabilitiesForDate_when_called_second_time_serves_from_cache() {
-    mockWebServer.enqueue(new MockResponse()
-            .setResponseCode(200)
-            .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .setBody(completeMockJsonResponseBody));
+    void fetchVulnerabilitiesForDate_when_called_second_time_serves_from_cache() {
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setBody(completeMockJsonResponseBody));
 
-    LocalDate targetDate = LocalDate.of(2026, 9, 15);
+        LocalDate targetDate = LocalDate.of(2026, 9, 15);
 
-    DailyVulnerabilities firstCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
-    DailyVulnerabilities secondCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
+        DailyVulnerabilities firstCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
+        DailyVulnerabilities secondCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
 
-    assertThat(firstCall).isNotNull();
-    assertThat(secondCall).isEqualTo(firstCall);
-    assertThat(mockWebServer.getRequestCount()).isEqualTo(1);
-}
+        assertThat(firstCall).isNotNull();
+        assertThat(secondCall).isEqualTo(firstCall);
+        assertThat(mockWebServer.getRequestCount()).isEqualTo(1);
+    }
+
+    @Test
+    void fetchVulnerabilitiesForDate_when_empty_response_does_not_populate_cache() {
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setBody(emptyMockJsonResponseBody));
+
+        LocalDate targetDate = LocalDate.of(2026, 9, 17);
+
+        DailyVulnerabilities response = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
+
+        assertThat(response).isNotNull();
+        assertThat(response.totalCount()).isEqualTo(0);
+        assertThat(cache.getIfPresent(targetDate)).isNull();
+        assertThat(mockWebServer.getRequestCount()).isEqualTo(1);
+    }
 
     @Test
     void fetchVulnerabilitiesForDate_when_rate_limit_exceeded_throws_NvdRateLimitExceededException() {
@@ -208,7 +236,6 @@ void fetchVulnerabilitiesForDate_when_called_second_time_serves_from_cache() {
         assertThat(response.date()).isEqualTo(targetDate);
         assertThat(response.totalCount()).isEqualTo(1);
         assertThat(response.items().size()).isEqualTo(1);
-        // We do not need to assert all the response values to satisfy this test case
 
         assertThat(mockWebServer.getRequestCount()).isEqualTo(2);
     }

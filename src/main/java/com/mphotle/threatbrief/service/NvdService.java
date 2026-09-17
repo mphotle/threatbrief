@@ -59,7 +59,11 @@ public class NvdService {
                 .transform(this::applyResilience)
                 .map(rawJson -> nvdResponseParser.parse(rawJson, date));
 
-        return dailyVulnerabilities.doOnNext(vulnerabilities -> cache.put(date, vulnerabilities));
+        return dailyVulnerabilities.doOnNext(vulnerabilities -> {
+                if (vulnerabilities.totalCount() > 0) {
+                    cache.put(date, vulnerabilities);
+                }
+            });
     }
 
     private ResponseSpec applyErrorStatusHandlers(ResponseSpec responseSpec) {
