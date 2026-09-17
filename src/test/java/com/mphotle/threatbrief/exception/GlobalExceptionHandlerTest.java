@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ServerWebInputException;
 
 import java.time.LocalDateTime;
 
@@ -33,6 +34,22 @@ class GlobalExceptionHandlerTest {
         assertThat(body.status()).isEqualTo(429);
         assertThat(body.error()).isEqualTo("Too Many Requests");
         assertThat(body.message()).isEqualTo("Upstream threat intelligence rate limit exceeded. Please try again shortly.");
+        assertThat(body.timestamp()).isNotNull();
+        assertThat(body.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
+    }
+
+    @Test
+    void handleNvdParseException_when_json_malformed_returns_bad_gateway_502() {
+        NvdParseException exception = new NvdParseException("Failed to parse NVD JSON payload", new RuntimeException("Malformed JSON"));
+
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleNvdParseException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+        ErrorResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.status()).isEqualTo(502);
+        assertThat(body.error()).isEqualTo("Bad Gateway");
+        assertThat(body.message()).isEqualTo("Failed to parse upstream vulnerability data payload.");
         assertThat(body.timestamp()).isNotNull();
         assertThat(body.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
     }
@@ -99,5 +116,35 @@ class GlobalExceptionHandlerTest {
         assertThat(body.message()).isEqualTo("The system encountered an error communicating with an external dependency.");
         assertThat(body.timestamp()).isNotNull();
         assertThat(body.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
+    }
+
+    @Test
+    void handleServerWebInputException_when_input_invalid_returns_bad_request_400() {
+        ServerWebInputException exception = new ServerWebInputException("Invalid argument format");
+
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleServerWebInputException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        ErrorResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.status()).isEqualTo(400);
+        assertThat(body.error()).isEqualTo("Bad Request");
+        assertThat(body.message()).isEqualTo("Invalid query parameter format or missing required field.");
+        assertThat(body.timestamp()).isNotNull();
+    }
+
+    @Test
+    void handleGenericException_when_unhandled_exception_returns_internal_server_error_500() {
+        Exception exception = new RuntimeException("Unexpected NullPointer");
+
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleGenericException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        ErrorResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.status()).isEqualTo(500);
+        assertThat(body.error()).isEqualTo("Internal Server Error");
+        assertThat(body.message()).isEqualTo("An unexpected internal error occurred.");
+        assertThat(body.timestamp()).isNotNull();
     }
 }

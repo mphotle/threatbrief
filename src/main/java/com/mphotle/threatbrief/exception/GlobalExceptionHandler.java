@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ServerWebInputException;
 
 import java.time.LocalDateTime;
 
@@ -60,6 +61,36 @@ public class GlobalExceptionHandler {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Downstream Service Error",
             "The system encountered an error communicating with an external dependency."
+        );
+    }
+
+    @ExceptionHandler(NvdParseException.class)
+    public ResponseEntity<ErrorResponse> handleNvdParseException(NvdParseException exception) {
+        log.error("Failed to parse NVD payload: {}", exception.getMessage(), exception);
+        return buildResponse(
+                HttpStatus.BAD_GATEWAY,
+                "Bad Gateway",
+                "Failed to parse upstream vulnerability data payload."
+        );
+    }
+
+    @ExceptionHandler(ServerWebInputException.class)
+    public ResponseEntity<ErrorResponse> handleServerWebInputException(ServerWebInputException exception) {
+        log.warn("Malformed HTTP request input: {}", exception.getReason());
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                "Invalid query parameter format or missing required field."
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception exception) {
+        log.error("Unhandled internal server error: {}", exception.getMessage(), exception);
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal Server Error",
+                "An unexpected internal error occurred."
         );
     }
 
