@@ -20,6 +20,7 @@ repositories {
 dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+	implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
 	implementation("org.springframework.boot:spring-boot-starter-json")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	compileOnly("org.projectlombok:lombok")

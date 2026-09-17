@@ -1,6 +1,8 @@
 package com.mphotle.threatbrief.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.mphotle.threatbrief.config.CacheConfig;
 import com.mphotle.threatbrief.config.JacksonConfig;
 import com.mphotle.threatbrief.exception.NvdClientException;
 import com.mphotle.threatbrief.exception.NvdRateLimitExceededException;
@@ -86,7 +88,9 @@ class NvdServiceTest {
         ObjectMapper objectMapper = new JacksonConfig().objectMapper();
         NvdResponseParser parser = new NvdResponseParser(objectMapper);
 
-        nvdService = new NvdService(webClient, parser);
+        Cache<LocalDate, DailyVulnerabilities> cache = CacheConfig.dailyVulnerabilitiesCache();
+
+        nvdService = new NvdService(webClient, parser, cache);
     }
 
     @AfterEach
@@ -124,6 +128,23 @@ class NvdServiceTest {
         assertThat(requestUrl.queryParameter("pubEndDate")).isEqualTo("2026-09-08T23:59:59.000Z");
         assertThat(mockWebServer.getRequestCount()).isEqualTo(1);
     }
+
+    @Test
+void fetchVulnerabilitiesForDate_when_called_second_time_serves_from_cache() {
+    mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .setBody(completeMockJsonResponseBody));
+
+    LocalDate targetDate = LocalDate.of(2026, 9, 15);
+
+    DailyVulnerabilities firstCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
+    DailyVulnerabilities secondCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
+
+    assertThat(firstCall).isNotNull();
+    assertThat(secondCall).isEqualTo(firstCall);
+    assertThat(mockWebServer.getRequestCount()).isEqualTo(1);
+}
 
     @Test
     void fetchVulnerabilitiesForDate_when_rate_limit_exceeded_throws_NvdRateLimitExceededException() {

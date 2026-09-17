@@ -6,6 +6,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.mphotle.threatbrief.exception.NvdClientException;
 import com.mphotle.threatbrief.exception.NvdRateLimitExceededException;
 import com.mphotle.threatbrief.exception.NvdServerException;
@@ -25,13 +26,24 @@ public class NvdService {
 
     private final WebClient nvdWebClient;
     private final NvdResponseParser nvdResponseParser;
+    private final Cache<LocalDate, DailyVulnerabilities> cache;
 
-    public NvdService(WebClient nvdWebClient, NvdResponseParser nvdResponseParser) {
+    public NvdService(
+        WebClient nvdWebClient,
+        NvdResponseParser nvdResponseParser,
+        Cache<LocalDate, DailyVulnerabilities> cache
+    ) {
         this.nvdWebClient = nvdWebClient;
         this.nvdResponseParser = nvdResponseParser;
+        this.cache = cache;
     }
 
     public Mono<DailyVulnerabilities> fetchVulnerabilitiesForDate(LocalDate date) {
+        DailyVulnerabilities cachedVulnerabilities = cache.getIfPresent(date);
+        if (cachedVulnerabilities != null) {
+            return Mono.just(cachedVulnerabilities);
+        }
+
         String startDateTime = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
         String endDateTime = date.atTime(23, 59, 59).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
 
@@ -42,10 +54,12 @@ public class NvdService {
                         .build())
                 .retrieve();
 
-        return applyErrorStatusHandlers(responseSpec)
+        Mono<DailyVulnerabilities> dailyVulnerabilities = applyErrorStatusHandlers(responseSpec)
                 .bodyToMono(String.class)
                 .transform(this::applyResilience)
                 .map(rawJson -> nvdResponseParser.parse(rawJson, date));
+
+        return dailyVulnerabilities.doOnNext(vulnerabilities -> cache.put(date, vulnerabilities));
     }
 
     private ResponseSpec applyErrorStatusHandlers(ResponseSpec responseSpec) {
