@@ -21,6 +21,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+
 @Service
 public class NvdService {
 
@@ -29,7 +31,7 @@ public class NvdService {
     private final Cache<LocalDate, DailyVulnerabilities> cache;
 
     public NvdService(
-        WebClient nvdWebClient,
+        @Qualifier("nvdWebClient") WebClient nvdWebClient,
         NvdResponseParser nvdResponseParser,
         Cache<LocalDate, DailyVulnerabilities> cache
     ) {
@@ -85,9 +87,9 @@ public class NvdService {
 
     private <T> Mono<T> applyResilience(Mono<T> mono) {
         return mono
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                .retryWhen(Retry.backoff(3, Duration.ofMillis(500))
                     .filter(throwable -> throwable instanceof NvdServerException)
-                    .maxBackoff(Duration.ofSeconds(10))
+                    .maxBackoff(Duration.ofSeconds(2))
                 )
                 .onErrorMap(WebClientResponseException.class, exception -> 
                     new NvdServiceException("Network failure connecting to NVD API: " + exception.getMessage(), exception)
