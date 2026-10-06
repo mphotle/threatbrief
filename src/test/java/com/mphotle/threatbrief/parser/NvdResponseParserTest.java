@@ -1,6 +1,6 @@
 package com.mphotle.threatbrief.parser;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.mphotle.threatbrief.exception.NvdParseException;
 import com.mphotle.threatbrief.model.DailyVulnerabilities;
 import com.mphotle.threatbrief.model.VulnerabilityItem;
@@ -22,7 +22,7 @@ class NvdResponseParserTest {
 
     @BeforeEach
     void setUp() {
-        parser = new NvdResponseParser(new ObjectMapper());
+        parser = new NvdResponseParser(new JsonMapper());
     }
 
     @Test

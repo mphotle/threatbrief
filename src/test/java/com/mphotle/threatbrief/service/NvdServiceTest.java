@@ -1,6 +1,6 @@
 package com.mphotle.threatbrief.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.mphotle.threatbrief.config.CacheConfig;
 import com.mphotle.threatbrief.config.JacksonConfig;
@@ -96,8 +96,8 @@ class NvdServiceTest {
                 .baseUrl(mockWebServer.url("/rest/json/cves/2.0").toString())
                 .build();
 
-        ObjectMapper objectMapper = new JacksonConfig().objectMapper();
-        NvdResponseParser parser = new NvdResponseParser(objectMapper);
+        JsonMapper jsonMapper = new JacksonConfig().jsonMapper();
+        NvdResponseParser parser = new NvdResponseParser(jsonMapper);
 
         cache = CacheConfig.dailyVulnerabilitiesCache();
 
