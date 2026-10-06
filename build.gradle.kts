@@ -19,7 +19,7 @@ repositories {
 
 dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 	implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
 	implementation("org.springframework.boot:spring-boot-starter-json")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -33,6 +33,9 @@ dependencies {
 	testAnnotationProcessor("org.projectlombok:lombok")
 }
 
+layout.buildDirectory.set(file("/tmp/threatbrief-build"))
+
 tasks.withType<Test> {
 	useJUnitPlatform()
+	jvmArgs("-XX:+EnableDynamicAgentLoading", "-Dnet.bytebuddy.experimental=true")
 }
