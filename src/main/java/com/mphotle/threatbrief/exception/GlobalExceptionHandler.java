@@ -24,6 +24,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDateRangeException(InvalidDateRangeException exception) {
+        log.warn("Invalid date range requested: {}", exception.getMessage());
+        return buildResponse(
+            HttpStatus.BAD_REQUEST,
+            "Bad Request",
+            exception.getMessage()
+        );
+    }
+
     @ExceptionHandler(NvdClientException.class)
     public ResponseEntity<ErrorResponse> handleNvdClientExceptions(NvdClientException exception) {
         log.warn("NVD API client exception: {}", exception.getMessage());
@@ -51,6 +61,56 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_GATEWAY,
             "Bad Gateway",
             "Unable to connect to the downstream vulnerability provider."
+        );
+    }
+
+    @ExceptionHandler(LlmRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleLlmRateLimitExceededException(LlmRateLimitExceededException exception) {
+        log.warn("LLM provider rate limit exceeded: {}", exception.getMessage());
+        return buildResponse(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too Many Requests",
+            "Upstream LLM provider rate limit exceeded. Please try again shortly."
+        );
+    }
+
+    @ExceptionHandler(LlmClientException.class)
+    public ResponseEntity<ErrorResponse> handleLlmClientException(LlmClientException exception) {
+        log.error("LLM provider client error: {}", exception.getMessage(), exception);
+        return buildResponse(
+            HttpStatus.BAD_GATEWAY,
+            "Bad Gateway",
+            "Configuration or request error with the downstream LLM provider."
+        );
+    }
+
+    @ExceptionHandler(LlmServerException.class)
+    public ResponseEntity<ErrorResponse> handleLlmServerException(LlmServerException exception) {
+        log.error("LLM provider server error downstream: {}", exception.getMessage(), exception);
+        return buildResponse(
+            HttpStatus.BAD_GATEWAY,
+            "Bad Gateway",
+            "The downstream LLM provider is currently experiencing issues. Please try again later."
+        );
+    }
+
+    @ExceptionHandler(LlmParseException.class)
+    public ResponseEntity<ErrorResponse> handleLlmParseException(LlmParseException exception) {
+        log.error("Failed to parse LLM response payload: {}", exception.getMessage(), exception);
+        return buildResponse(
+            HttpStatus.BAD_GATEWAY,
+            "Bad Gateway",
+            "Failed to parse downstream LLM response payload."
+        );
+    }
+
+    @ExceptionHandler(LlmServiceException.class)
+    public ResponseEntity<ErrorResponse> handleLlmServiceException(LlmServiceException exception) {
+        log.error("LLM provider communication failure: {}", exception.getMessage(), exception);
+        return buildResponse(
+            HttpStatus.BAD_GATEWAY,
+            "Bad Gateway",
+            "Unable to communicate with the downstream LLM provider."
         );
     }
 
