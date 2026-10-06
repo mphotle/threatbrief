@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreatBrief | Executive Intelligence</title>
+    <!-- Marked.js for fast, spec-compliant Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+
+    <div class="layout-container">
+        <header>
+            <div class="header-top-row">
+                <img src="/favicon.svg" alt="ThreatBrief Logo" class="brand-logo">
+                <div class="brand-title">ThreatBrief</div>
+            </div>
+            <div class="subtitle-row">
+                <div class="brand-subtitle">AI-Automated CVE & Risk Intelligence Aggregator</div>
+                <button id="learnMoreBtn" type="button" class="learn-more-btn">
+                    <span>Learn More</span>
+                    <span id="learnMoreIcon">▾</span>
+                </button>
+            </div>
+            <div id="infoPanel" class="info-panel">
+                <h4>About ThreatBrief & 14-Day Intelligence Window</h4>
+                <p>
+                    <strong>System Purpose:</strong> ThreatBrief automatically ingests daily CVE feeds from the National Vulnerability Database (NVD) and uses generative AI to synthesize high-impact threat briefings, risk trends, and priority remediation steps for executives and security operations teams.
+                </p>
+                <p>
+                    <strong>14-Day Window:</strong> Briefings are automatically pre-generated in background tasks and cached for a rolling 14-day UTC window. This guarantees near-instant rendering while preserving upstream API quotas and focusing on active, actionable security incidents.
+                </p>
+            </div>
+        </header>
+
+        <div class="control-bar">
+            <div class="control-header">
+                <span class="pills-label">Select Date (Past 14 Days UTC)</span>
+                <span id="dateBadge" class="date-badge">14-Day Window</span>
+            </div>
+            <div id="datePillsContainer" class="date-pills-container"></div>
+        </div>
+
+        <div class="brief-card">
+            <!-- Loading Indicator -->
+            <div id="loadingState" class="loading-state" hidden>
+                <div class="spinner"></div>
+                <div id="loadingText">Fetching threat brief...</div>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="errorBanner" class="error-banner" hidden>
+                <strong>Error loading briefing:</strong> <span id="errorMessage"></span>
+            </div>
+
+            <!-- Metadata Bar -->
+            <div id="metaBar" class="brief-meta-bar" hidden>
+                <span id="reportDateBadge" class="meta-badge"></span>
+                <span id="cveCountBadge" class="meta-badge"></span>
+            </div>
+
+            <!-- Rendered Briefing Body -->
+            <div id="briefContent" class="markdown-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

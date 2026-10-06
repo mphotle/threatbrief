@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    
+                <filter id="glow-primary" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="8" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="glow-threat" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="10" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+  </defs>
+  <g>
+    
+                    <!-- Protective Shield Outline with Sharp Miter Corners -->
+                    <path d="M 256,36 L 436,80 C 436,270 340,405 256,476 C 172,405 76,270 76,80 Z" 
+                          fill="#0a0e17" stroke="#38bdf8" stroke-width="22" stroke-linejoin="miter" stroke-miterlimit="6"/>
+
+                    <!-- Axon Branches / Dendrite Pathways -->
+                    <path d="M 256,230 L 160,150 M 256,230 L 352,150 M 256,230 L 150,280 M 256,230 L 362,280 M 256,230 L 256,360" 
+                          fill="none" stroke="#38bdf8" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow-primary)"/>
+
+                    <!-- Secondary Synaptic Nodes -->
+                    <circle cx="160" cy="150" r="18" fill="#38bdf8"/>
+                    <circle cx="352" cy="150" r="18" fill="#38bdf8"/>
+                    <circle cx="150" cy="280" r="18" fill="#38bdf8"/>
+                    <circle cx="362" cy="280" r="18" fill="#38bdf8"/>
+                    <circle cx="256" cy="360" r="20" fill="#38bdf8"/>
+
+                    <!-- Central Primary Neuron Soma (Cell Body) with Threat Core -->
+                    <circle cx="256" cy="230" r="42" fill="#0a0e17" stroke="#38bdf8" stroke-width="12"/>
+                    <circle cx="256" cy="230" r="22" fill="#ff2a5f" filter="url(#glow-threat)"/>
+                
+  </g>
+</svg>
