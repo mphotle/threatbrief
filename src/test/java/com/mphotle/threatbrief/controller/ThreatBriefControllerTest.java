@@ -1,7 +1,7 @@
 package com.mphotle.threatbrief.controller;
 
-import com.mphotle.threatbrief.model.DailyVulnerabilities;
-import com.mphotle.threatbrief.service.NvdService;
+import com.mphotle.threatbrief.model.ThreatBrief;
+import com.mphotle.threatbrief.service.ThreatBriefService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -13,7 +13,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -26,50 +26,50 @@ class ThreatBriefControllerTest {
     private WebTestClient webTestClient;
 
     @Mock
-    private NvdService nvdService;
+    private ThreatBriefService threatBriefService;
 
     @BeforeEach
     void setUp() {
-        ThreatBriefController controller = new ThreatBriefController(nvdService);
+        ThreatBriefController controller = new ThreatBriefController(threatBriefService);
         this.webTestClient = WebTestClient.bindToController(controller).build();
     }
 
     @Test
-    void get_when_date_provided_returns_200_and_vulnerabilities() {
+    void getBrief_when_date_provided_returns_200_and_threat_brief() {
         LocalDate testDate = LocalDate.of(2026, 9, 15);
-        DailyVulnerabilities mockResult = new DailyVulnerabilities(testDate, 0, List.of());
+        ThreatBrief mockResult = new ThreatBrief(testDate, "# Brief Content", 5, LocalDateTime.now());
 
-        when(nvdService.fetchVulnerabilitiesForDate(testDate)).thenReturn(Mono.just(mockResult));
+        when(threatBriefService.getBriefForDate(testDate)).thenReturn(Mono.just(mockResult));
 
         webTestClient.get()
-                .uri("/vulnerabilities?date=2026-09-15")
+                .uri("/brief?date=2026-09-15")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.date").isEqualTo("2026-09-15")
-                .jsonPath("$.totalCount").isEqualTo(0)
-                .jsonPath("$.items").isEmpty();
+                .jsonPath("$.content").isEqualTo("# Brief Content")
+                .jsonPath("$.totalCount").isEqualTo(5);
 
-        verify(nvdService).fetchVulnerabilitiesForDate(testDate);
+        verify(threatBriefService).getBriefForDate(testDate);
     }
 
     @Test
-    void get_when_date_omitted_uses_current_date() {
-        DailyVulnerabilities mockResult = new DailyVulnerabilities(LocalDate.now(), 0, List.of());
-        when(nvdService.fetchVulnerabilitiesForDate(any(LocalDate.class))).thenReturn(Mono.just(mockResult));
+    void getBrief_when_date_omitted_uses_current_date() {
+        ThreatBrief mockResult = new ThreatBrief(LocalDate.now(), "# Brief Content", 0, LocalDateTime.now());
+        when(threatBriefService.getBriefForDate(any(LocalDate.class))).thenReturn(Mono.just(mockResult));
 
         webTestClient.get()
-                .uri("/vulnerabilities")
+                .uri("/brief")
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(nvdService).fetchVulnerabilitiesForDate(any(LocalDate.class));
+        verify(threatBriefService).getBriefForDate(any(LocalDate.class));
     }
 
     @Test
-    void get_when_invalid_date_format_returns_400_bad_request() {
+    void getBrief_when_invalid_date_format_returns_400_bad_request() {
         webTestClient.get()
-                .uri("/vulnerabilities?date=15-09-2026")
+                .uri("/brief?date=15-09-2026")
                 .exchange()
                 .expectStatus().isBadRequest();
     }
