@@ -6,11 +6,11 @@ WORKDIR /app
 COPY gradle gradle
 COPY gradlew build.gradle.kts settings.gradle.kts gradle.properties ./
 RUN chmod +x gradlew
-RUN ./gradlew dependencies --no-daemon
+RUN ./gradlew dependencies --no-daemon -Dorg.gradle.jvmargs="-Xmx512m"
 
 # Copy source code and build executable JAR
 COPY src src
-RUN ./gradlew bootJar --no-daemon -x test
+RUN ./gradlew bootJar --no-daemon -x test -Dorg.gradle.jvmargs="-Xmx512m"
 
 # Stage 2: Minimal Production JRE 25 Runtime
 FROM eclipse-temurin:25-jre-alpine
@@ -18,10 +18,11 @@ WORKDIR /app
 
 # Create non-root system user for container security
 RUN addgroup -S threatgroup && adduser -S threatuser -G threatgroup
-USER threatuser
 
 # Copy compiled JAR from builder stage
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /tmp/threatbrief-build/libs/*.jar /app/app.jar
+
+USER threatuser
 
 # Dynamic port assignment
 ENV PORT=8080
