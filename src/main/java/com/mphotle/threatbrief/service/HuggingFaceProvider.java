@@ -21,6 +21,13 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 import java.util.List; 
 
+/**
+ * {@link LlmProvider} implementation that communicates asynchronously with the Hugging Face Router API.
+ * <p>
+ * Handles OpenAI-compatible chat completion requests, maps HTTP error statuses to domain-specific exceptions,
+ * and extracts synthesized Markdown content from API responses.
+ * </p>
+ */
 @Service
 @ConditionalOnProperty(name = "llm.provider", havingValue = "huggingface")
 public class HuggingFaceProvider implements LlmProvider {

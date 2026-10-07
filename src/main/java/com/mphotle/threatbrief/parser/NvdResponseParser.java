@@ -11,6 +11,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Component responsible for parsing raw National Vulnerability Database (NVD) API JSON 
+ * payloads into normalized {@link DailyVulnerabilities} domain objects.
+ * <p>
+ * Performs dynamic AST traversal to extract English descriptions and normalizes metrics across 
+ * CVSS v2.0, v3.0, v3.1, and v4.0 specifications while prioritizing primary scoring sources.
+ * </p>
+ */
 @Component
 public class NvdResponseParser {
 

@@ -11,6 +11,9 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 
+/**
+ * REST controller exposing reactive endpoints for querying daily security threat briefings.
+ */
 @RestController
 public class ThreatBriefController {
 

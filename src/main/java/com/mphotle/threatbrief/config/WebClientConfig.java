@@ -9,6 +9,14 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
+/**
+ * Spring configuration class responsible for constructing reactive {@link WebClient} instances.
+ * <p>
+ * Configures non-blocking HTTP clients with custom Netty address resolvers, expanded 16 MB in-memory
+ * codec buffers, and default headers required for downstream integrations with the NIST NVD API
+ * and the Hugging Face Router API.
+ * </p>
+ */
 @Configuration
 public class WebClientConfig {
 

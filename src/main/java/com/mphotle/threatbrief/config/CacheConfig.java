@@ -9,6 +9,13 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDate;
 
+/**
+ * Spring configuration class responsible for initializing in-memory Caffeine caches.
+ * <p>
+ * Manages high-performance cache instances for daily NVD vulnerability datasets
+ * and synthesized LLM threat briefings to reduce external API requests and lower latency.
+ * </p>
+ */
 @Configuration
 public class CacheConfig {
 

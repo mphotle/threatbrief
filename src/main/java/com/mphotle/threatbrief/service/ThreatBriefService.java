@@ -13,6 +13,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
+/**
+ * Core orchestration service responsible for coordinating threat briefing retrieval, cache management, 
+ * and date range validation.
+ * <p>
+ * Integrates {@link NvdService} and {@link LlmService} to synthesize intelligence reports within a strict 14-day 
+ * rolling window, supporting rate-throttled background pre-generation.
+ * </p>
+ */
 @Slf4j
 @Service
 public class ThreatBriefService {

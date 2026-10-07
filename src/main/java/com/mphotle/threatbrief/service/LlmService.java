@@ -9,6 +9,13 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+/**
+ * Service responsible for orchestrating prompt construction and invoking the configured {@link LlmProvider}.
+ * <p>
+ * Filters, ranks, and truncates daily vulnerability data to optimize LLM token context windows before generating 
+ * structured Markdown threat briefings.
+ * </p>
+ */
 @Service
 public class LlmService {
 

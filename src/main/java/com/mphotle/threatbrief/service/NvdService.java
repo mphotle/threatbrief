@@ -23,6 +23,14 @@ import java.time.format.DateTimeFormatter;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 
+/**
+ * Reactive service responsible for fetching daily CVE vulnerability datasets from the NIST National Vulnerability 
+ * Database (NVD) REST API.
+ * <p>
+ * Implements in-memory Caffeine caching, WebClient error handling, and exponential backoff retries for transient 
+ * downstream server errors.
+ * </p>
+ */
 @Service
 public class NvdService {
 
