@@ -102,6 +102,7 @@ header {
     padding: 0.25rem 0.6rem;
     border-radius: 20px;
     letter-spacing: 0.02em;
+    white-space: nowrap;
 }
 
 .pills-label {
