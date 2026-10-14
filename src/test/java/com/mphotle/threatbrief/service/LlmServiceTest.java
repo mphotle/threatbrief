@@ -102,8 +102,8 @@ class LlmServiceTest {
     }
 
     @Test
-    void generateBrief_when_description_longer_than_200_chars_truncates_description() {
-        String longDescription = "A".repeat(250);
+    void generateBrief_when_description_longer_than_800_chars_truncates_description() {
+        String longDescription = "A".repeat(850);
         VulnerabilityItem item = new VulnerabilityItem("CVE-2026-9999", "MEDIUM", 5.0, longDescription);
         DailyVulnerabilities vulnerabilities = new DailyVulnerabilities(testDate, 1, List.of(item));
 
@@ -114,7 +114,7 @@ class LlmServiceTest {
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(provider).generate(promptCaptor.capture());
 
-        String expectedTruncatedDesc = "A".repeat(197) + "...";
+        String expectedTruncatedDesc = "A".repeat(797) + "...";
         assertThat(promptCaptor.getValue()).contains(expectedTruncatedDesc);
     }
 

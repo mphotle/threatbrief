@@ -36,15 +36,18 @@ public class HuggingFaceProvider implements LlmProvider {
     private final JsonMapper jsonMapper;
     private final String token;
     private final String modelId;
+    private final int maxTokens;
 
     public HuggingFaceProvider(@Qualifier("hfWebClient") WebClient client,
                                JsonMapper jsonMapper,
                                @Value("${huggingface.api.token}") String token,
-                               @Value("${huggingface.model.id}") String modelId) {
+                               @Value("${huggingface.model.id}") String modelId,
+                               @Value("${huggingface.max.tokens:3500}") int maxTokens) {
         this.client = client;
         this.jsonMapper = jsonMapper;
         this.token = token;
         this.modelId = modelId;
+        this.maxTokens = maxTokens;
     }
 
     @Override
@@ -57,7 +60,8 @@ public class HuggingFaceProvider implements LlmProvider {
                         "model", modelId,
                         "messages", List.of(
                                 Map.of("role", "user", "content", prompt)
-                        )
+                        ),
+                        "max_tokens", maxTokens
                 ))
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, response ->
