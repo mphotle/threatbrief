@@ -4,10 +4,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.ServerWebInputException;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -131,6 +134,22 @@ class GlobalExceptionHandlerTest {
         assertThat(body.error()).isEqualTo("Bad Request");
         assertThat(body.message()).isEqualTo("Invalid query parameter format or missing required field.");
         assertThat(body.timestamp()).isNotNull();
+    }
+
+    @Test
+    void handleNoResourceFoundException_when_resource_missing_returns_not_found_404() {
+        NoResourceFoundException exception = new NoResourceFoundException(URI.create("/api/mcp"), "api/mcp");
+
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleNoResourceFoundException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        ErrorResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.status()).isEqualTo(404);
+        assertThat(body.error()).isEqualTo("Not Found");
+        assertThat(body.message()).isEqualTo("Resource not found");
+        assertThat(body.timestamp()).isNotNull();
+        assertThat(body.timestamp()).isBeforeOrEqualTo(LocalDateTime.now());
     }
 
     @Test

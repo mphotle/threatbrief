@@ -6,8 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.ServerWebInputException;
 
+import java.net.NoRouteToHostException;
 import java.time.LocalDateTime;
 
 @Slf4j 
@@ -141,6 +143,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Bad Request",
                 "Invalid query parameter format or missing required field."
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException exception) {
+        log.warn("Resource not found: {}", exception.getReason());
+        return buildResponse(
+                HttpStatus.NOT_FOUND, 
+                "Not Found", 
+                "Resource not found"
         );
     }
 
