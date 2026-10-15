@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,21 +64,19 @@ class LlmServiceTest {
     }
 
     @Test
-    void generateBrief_when_no_vulnerabilities_exist_builds_prompt_with_empty_message() {
+    void generateBrief_when_no_vulnerabilities_exist_returns_default_brief_without_calling_provider() {
         DailyVulnerabilities vulnerabilities = new DailyVulnerabilities(testDate, 0, Collections.emptyList());
-
-        when(provider.generate(anyString())).thenReturn(Mono.just("Brief with no vulnerabilities"));
 
         Mono<String> result = llmService.generateBrief(vulnerabilities);
 
+        String expectedBrief = "# Executive Threat Briefing - " + testDate + "\n\n"
+                + "There are no vulnerabilities published on the NVD as of yet.\n";
+
         StepVerifier.create(result)
-                .expectNext("Brief with no vulnerabilities")
+                .expectNext(expectedBrief)
                 .verifyComplete();
 
-        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(provider).generate(promptCaptor.capture());
-
-        assertThat(promptCaptor.getValue()).contains("No vulnerabilities recorded for this date as of yet.");
+        verify(provider, never()).generate(anyString());
     }
 
     @Test
@@ -120,7 +119,8 @@ class LlmServiceTest {
 
     @Test
     void generateBrief_when_provider_throws_DownstreamServiceException_propagates_unchanged() {
-        DailyVulnerabilities vulnerabilities = new DailyVulnerabilities(testDate, 0, Collections.emptyList());
+        VulnerabilityItem item = new VulnerabilityItem("CVE-2026-0001", "CRITICAL", 9.8, "Critical error.");
+        DailyVulnerabilities vulnerabilities = new DailyVulnerabilities(testDate, 1, List.of(item));
         LlmClientException clientException = new LlmClientException("Invalid API token");
 
         when(provider.generate(anyString())).thenReturn(Mono.error(clientException));
@@ -134,7 +134,8 @@ class LlmServiceTest {
 
     @Test
     void generateBrief_when_provider_throws_generic_exception_wraps_in_DownstreamServiceException() {
-        DailyVulnerabilities vulnerabilities = new DailyVulnerabilities(testDate, 0, Collections.emptyList());
+        VulnerabilityItem item = new VulnerabilityItem("CVE-2026-0001", "CRITICAL", 9.8, "Critical error.");
+        DailyVulnerabilities vulnerabilities = new DailyVulnerabilities(testDate, 1, List.of(item));
         RuntimeException runtimeException = new RuntimeException("Unexpected IO error");
 
         when(provider.generate(anyString())).thenReturn(Mono.error(runtimeException));

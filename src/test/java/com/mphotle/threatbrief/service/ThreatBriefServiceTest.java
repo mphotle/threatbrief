@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,6 +67,26 @@ class ThreatBriefServiceTest {
         assertThat(result.content()).isEqualTo(mockMarkdown);
         assertThat(result.totalCount()).isEqualTo(1);
         assertThat(threatBriefCache.getIfPresent(validDate)).isNotNull();
+    }
+
+    @Test
+    void getBriefForDate_when_total_count_is_zero_does_not_cache_brief() {
+        LocalDate validDate = LocalDate.now(ZoneOffset.UTC).minusDays(3);
+        DailyVulnerabilities zeroVulnerabilities = new DailyVulnerabilities(
+                validDate,
+                0,
+                Collections.emptyList()
+        );
+        String mockMarkdown = "# Executive Briefing - Zero";
+
+        when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(zeroVulnerabilities));
+        when(llmService.generateBrief(zeroVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
+
+        ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
+
+        assertThat(result).isNotNull();
+        assertThat(result.totalCount()).isEqualTo(0);
+        assertThat(threatBriefCache.getIfPresent(validDate)).isNull();
     }
 
     @Test

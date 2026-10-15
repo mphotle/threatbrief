@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.time.LocalDate;
 
 /**
  * Service responsible for orchestrating prompt construction and invoking the configured {@link LlmProvider}.
@@ -20,12 +21,17 @@ import java.util.List;
 public class LlmService {
 
     private final LlmProvider provider;
+    private static final int MAX_DESCRIPTION_LENGTH = 800;
 
     public LlmService(LlmProvider provider) {
         this.provider = provider;
     }
 
     public Mono<String> generateBrief(DailyVulnerabilities vulnerabilities) {
+        if (vulnerabilities.items().isEmpty()) {
+            return Mono.just(buildZeroVulnerabilitiesBrief(vulnerabilities.date()));
+        }
+
         String prompt = buildPrompt(vulnerabilities);
         return provider.generate(prompt)
                 .onErrorMap(this::wrapIfNecessary);
@@ -39,7 +45,12 @@ public class LlmService {
                 "Failed to generate threat briefing via LLM provider: " + t.getMessage(), t);
     }
 
-    private static final int MAX_DESCRIPTION_LENGTH = 800;
+    private String buildZeroVulnerabilitiesBrief(LocalDate date) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# Executive Threat Briefing - ").append(date).append("\n\n");
+        sb.append("There are no vulnerabilities published on the NVD as of yet.\n");
+        return sb.toString();
+    }
 
     private String buildPrompt(DailyVulnerabilities vulnerabilities) {
         StringBuilder sb = new StringBuilder();

@@ -56,7 +56,11 @@ public class ThreatBriefService {
                                 LocalDateTime.now(ZoneOffset.UTC)
                         ))
                 )
-                .doOnNext(brief -> threatBriefCache.put(date, brief));
+                .doOnNext(brief -> {
+                    if (brief.totalCount() > 0) {
+                        threatBriefCache.put(date, brief);
+                    }
+                });
     }
 
     public void pregenerateBriefsForPast14Days() {
