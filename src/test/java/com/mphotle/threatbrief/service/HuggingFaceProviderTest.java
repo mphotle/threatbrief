@@ -23,6 +23,9 @@ class HuggingFaceProviderTest {
     private static final String DUMMY_TOKEN = "dummy-token";
     private static final String DUMMY_MODEL = "dummy-model";
     private static final int DUMMY_MAX_TOKENS = 3500;
+    private static final double DUMMY_FREQUENCY_PENALTY = 0.5;
+    private static final double DUMMY_PRESENCE_PENALTY = 0.3;
+
     private HuggingFaceProvider provider;
 
     private WebClient buildWebClient(ExchangeFunction exchangeFunction) {
@@ -43,7 +46,8 @@ class HuggingFaceProviderTest {
                         .build());
 
         WebClient client = buildWebClient(successExchange);
-        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS);
+        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS, 
+                                DUMMY_FREQUENCY_PENALTY, DUMMY_PRESENCE_PENALTY);
 
         Mono<String> result = provider.generate("dummy prompt");
         StepVerifier.create(result)
@@ -61,7 +65,8 @@ class HuggingFaceProviderTest {
                         .build());
 
         WebClient client = buildWebClient(errorExchange);
-        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS);
+        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS, 
+                                DUMMY_FREQUENCY_PENALTY, DUMMY_PRESENCE_PENALTY);
 
         Mono<String> result = provider.generate("bad prompt");
         StepVerifier.create(result)
@@ -79,7 +84,8 @@ class HuggingFaceProviderTest {
                         .build());
 
         WebClient client = buildWebClient(errorExchange);
-        provider = new HuggingFaceProvider(client, new com.fasterxml.jackson.databind.json.JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS);
+        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS, 
+                                DUMMY_FREQUENCY_PENALTY, DUMMY_PRESENCE_PENALTY);
 
         Mono<String> result = provider.generate("prompt");
         StepVerifier.create(result)
@@ -97,7 +103,8 @@ class HuggingFaceProviderTest {
                         .build());
 
         WebClient client = buildWebClient(errorExchange);
-        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS);
+        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS, 
+                                DUMMY_FREQUENCY_PENALTY, DUMMY_PRESENCE_PENALTY);
 
         Mono<String> result = provider.generate("prompt");
         StepVerifier.create(result)
@@ -115,7 +122,8 @@ class HuggingFaceProviderTest {
                         .build());
 
         WebClient client = buildWebClient(exchange);
-        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS);
+        provider = new HuggingFaceProvider(client, new JsonMapper(), DUMMY_TOKEN, DUMMY_MODEL, DUMMY_MAX_TOKENS, 
+                                DUMMY_FREQUENCY_PENALTY, DUMMY_PRESENCE_PENALTY);
 
         Mono<String> result = provider.generate("prompt");
         StepVerifier.create(result)

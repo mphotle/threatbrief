@@ -27,6 +27,10 @@ import java.util.List;
  * Handles OpenAI-compatible chat completion requests, maps HTTP error statuses to domain-specific exceptions,
  * and extracts synthesized Markdown content from API responses.
  * </p>
+ *
+ * @see <a href="https://huggingface.co/docs/inference-providers/main/en/tasks/chat-completion#api-specification">
+ * Hugging Face Router API Specification
+ * </a>
  */
 @Service
 @ConditionalOnProperty(name = "llm.provider", havingValue = "huggingface")
@@ -37,17 +41,23 @@ public class HuggingFaceProvider implements LlmProvider {
     private final String token;
     private final String modelId;
     private final int maxTokens;
+    private final double temperature;
+    private final double frequency_penalty;
 
     public HuggingFaceProvider(@Qualifier("hfWebClient") WebClient client,
                                JsonMapper jsonMapper,
                                @Value("${huggingface.api.token}") String token,
                                @Value("${huggingface.model.id}") String modelId,
-                               @Value("${huggingface.max.tokens:3500}") int maxTokens) {
+                               @Value("${huggingface.max.tokens}") int maxTokens,
+                               @Value("${huggingface.temperature}") double temperature,
+                               @Value("${huggingface.frequency_penalty}") double frequency_penalty) {
         this.client = client;
         this.jsonMapper = jsonMapper;
         this.token = token;
         this.modelId = modelId;
         this.maxTokens = maxTokens;
+        this.temperature = temperature;
+        this.frequency_penalty = frequency_penalty;
     }
 
     @Override
@@ -61,6 +71,8 @@ public class HuggingFaceProvider implements LlmProvider {
                         "messages", List.of(
                                 Map.of("role", "user", "content", prompt)
                         ),
+                        "temperature", temperature,        // Lower randomness for structured reports
+                        "frequency_penalty", frequency_penalty,      // Penalizes repetitive tokens based on frequency
                         "max_tokens", maxTokens
                 ))
                 .retrieve()
