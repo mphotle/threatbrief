@@ -60,6 +60,11 @@ heap boundaries (`-Xmx512m`) and host-level swap allocation to eliminate out-of-
 lightweight Temurin Alpine JRE container as a restricted non-root user (`threatuser`), isolated behind an Nginx reverse proxy handling SSL termination and port 
 forwarding.
 
+### Automated CI/CD & Cloud Deployment
+Deployments are fully automated using a GitHub Actions pipeline triggered on pushes to `main`. The workflow compiles the application, runs unit tests, and builds 
+a multi-stage Docker image published to GitHub Container Registry (GHCR). It then opens a secure SSH session to the AWS EC2 host to pull the new image, gracefully 
+swap the running container, and prune obsolete layers—ensuring reliable, zero-touch deployments without manual server intervention.
+
 ---
 
 ## 🛠️ Tech Stack
@@ -67,4 +72,4 @@ forwarding.
 * **Backend:** Java 25, Spring Boot 4.1.1 (WebFlux), Netty, Caffeine Cache, Jackson JSR-310
 * **Frontend:** Vanilla JS (Async/Await), HTML5, CSS3 (Dark Theme), Marked.js
 * **Testing:** JUnit 5, Reactor Test, MockWebServer
-* **DevOps & Cloud:** Docker (Multi-stage), Nginx (Certbot SSL), AWS EC2 (Ubuntu)
+* **DevOps & Cloud:** GitHub Actions, GHCR, Docker (Multi-stage), Nginx (Certbot SSL), AWS EC2 (Ubuntu)
