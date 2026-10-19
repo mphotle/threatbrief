@@ -17,7 +17,7 @@ import java.time.ZoneOffset;
  * Core orchestration service responsible for coordinating threat briefing retrieval, cache management, 
  * and date range validation.
  * <p>
- * Integrates {@link NvdService} and {@link LlmService} to synthesize intelligence reports within a strict 14-day 
+ * Integrates {@link NvdService} and {@link AgentService} to synthesize intelligence reports within a strict 14-day 
  * rolling window, supporting rate-throttled background pre-generation.
  * </p>
  */
@@ -26,16 +26,16 @@ import java.time.ZoneOffset;
 public class ThreatBriefService {
 
     private final NvdService nvdService;
-    private final LlmService llmService;
+    private final AgentService agentService;
     private final Cache<LocalDate, ThreatBrief> threatBriefCache;
 
     public ThreatBriefService(
         NvdService nvdService,
-        LlmService llmService,
+        AgentService agentService,
         Cache<LocalDate, ThreatBrief> threatBriefCache
     ) {
         this.nvdService = nvdService;
-        this.llmService = llmService;
+        this.agentService = agentService;
         this.threatBriefCache = threatBriefCache;
     }
 
@@ -48,7 +48,7 @@ public class ThreatBriefService {
         }
 
         return nvdService.fetchVulnerabilitiesForDate(date)
-                .flatMap(vulnerabilities -> llmService.generateBrief(vulnerabilities)
+                .flatMap(vulnerabilities -> agentService.generateBrief(vulnerabilities)
                         .map(content -> new ThreatBrief(
                                 date,
                                 content,

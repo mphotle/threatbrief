@@ -18,14 +18,14 @@
                 <div class="brand-title">ThreatBrief</div>
             </div>
             <div class="subtitle-row">
-                <div class="brand-subtitle">AI-Automated CVE & Risk Intelligence Aggregator</div>
+                <div class="brand-subtitle">AI-Automated CVE &amp; Risk Intelligence Aggregator</div>
                 <button id="learnMoreBtn" type="button" class="learn-more-btn">
                     <span>Learn More</span>
                     <span id="learnMoreIcon">▾</span>
                 </button>
             </div>
             <div id="infoPanel" class="info-panel">
-                <h4>About ThreatBrief & 14-Day Intelligence Window</h4>
+                <h4>About ThreatBrief &amp; 14-Day Intelligence Window</h4>
                 <p>
                     <strong>System Purpose:</strong> ThreatBrief automatically ingests daily CVE feeds from the National Vulnerability Database (NVD) and uses generative AI to synthesize high-impact threat briefings, risk trends, and priority remediation steps for executives and security operations teams.
                 </p>
@@ -63,6 +63,26 @@
 
             <!-- Rendered Briefing Body -->
             <div id="briefContent" class="markdown-body"></div>
+        </div>
+    </div>
+
+    <!-- Chat Toggle Button (visible on all screens) -->
+    <button id="chatToggleBtn" class="chat-toggle-btn" title="Open Chat">
+        <img src="/chat.svg" alt="Chat" width="24" height="24">
+    </button>
+
+    <!-- Chat Panel -->
+    <div id="chatPanel" class="chat-panel">
+        <div class="chat-header">
+            <h3>ThreatBrief Assistant</h3>
+            <button id="chatCloseBtn" class="chat-close-btn">&times;</button>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input-area">
+            <textarea id="chatInput" placeholder="Ask about threat briefs..." rows="2"></textarea>
+            <button id="chatSendBtn" class="chat-send-btn" title="Send message">
+                <img src="/send.svg" alt="Send" width="20" height="20">
+            </button>
         </div>
     </div>
 

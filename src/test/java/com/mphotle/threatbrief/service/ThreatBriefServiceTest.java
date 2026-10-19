@@ -36,7 +36,7 @@ class ThreatBriefServiceTest {
     private NvdService nvdService;
 
     @Mock
-    private LlmService llmService;
+    private AgentService agentService;
 
     private Cache<LocalDate, ThreatBrief> threatBriefCache;
     private ThreatBriefService threatBriefService;
@@ -44,7 +44,7 @@ class ThreatBriefServiceTest {
     @BeforeEach
     void setUp() {
         this.threatBriefCache = CacheConfig.threatBriefCache();
-        this.threatBriefService = new ThreatBriefService(nvdService, llmService, threatBriefCache);
+        this.threatBriefService = new ThreatBriefService(nvdService, agentService, threatBriefCache);
     }
 
     @Test
@@ -58,7 +58,7 @@ class ThreatBriefServiceTest {
         String mockMarkdown = "# Executive Briefing";
 
         when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(mockVulnerabilities));
-        when(llmService.generateBrief(mockVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
+        when(agentService.generateBrief(mockVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
 
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
 
@@ -80,7 +80,7 @@ class ThreatBriefServiceTest {
         String mockMarkdown = "# Executive Briefing - Zero";
 
         when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(zeroVulnerabilities));
-        when(llmService.generateBrief(zeroVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
+        when(agentService.generateBrief(zeroVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
 
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
 
@@ -90,7 +90,7 @@ class ThreatBriefServiceTest {
     }
 
     @Test
-    void getBriefForDate_when_cached_returns_without_calling_nvd_or_llm() {
+    void getBriefForDate_when_cached_returns_without_calling_nvd_or_agent() {
         LocalDate validDate = LocalDate.now(ZoneOffset.UTC).minusDays(2);
         ThreatBrief existingBrief = new ThreatBrief(validDate, "# Cached Brief", 3, null);
         threatBriefCache.put(validDate, existingBrief);
@@ -99,7 +99,7 @@ class ThreatBriefServiceTest {
 
         assertThat(result).isEqualTo(existingBrief);
         verify(nvdService, never()).fetchVulnerabilitiesForDate(any());
-        verify(llmService, never()).generateBrief(any());
+        verify(agentService, never()).generateBrief(any());
     }
 
     @Test
