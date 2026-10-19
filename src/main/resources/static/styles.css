@@ -704,14 +704,14 @@ button#fetchBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Improved mobile navbar overlap fix using CSS viewport units and env() */
 @media (max-width: 768px) {
     .chat-input-area {
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     }
     
     .chat-panel {
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     }
     
     .chat-messages {
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     }
 }
