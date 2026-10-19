@@ -89,14 +89,7 @@ swap the running container, and prune obsolete layers—ensuring reliable, zero-
 
 ## 🛠️ Tech Stack
 
-<<<<<<< HEAD
-- **Backend & AI:** Java 25, Spring Boot 4.1.1 (WebFlux), LangChain4j, Netty, Caffeine Cache, Jackson JSR-310
-- **Frontend:** Vanilla JS (Async/Await), HTML5, CSS3 (Dark Theme), Marked.js
-- **Testing:** JUnit 5, Reactor Test, MockWebServer
-- **DevOps & Cloud:** GitHub Actions, GHCR, Docker (Multi-stage), Nginx (Certbot SSL), AWS EC2 (Ubuntu)
-=======
 * **Backend:** Java 25, Spring Boot 4.1.1 (WebFlux), Netty, Caffeine Cache, Jackson JSR-310
 * **Frontend:** Vanilla JS (Async/Await), HTML5, CSS3 (Dark Theme), Marked.js
 * **Testing:** JUnit 5, Reactor Test, MockWebServer
 * **DevOps & Cloud:** GitHub Actions, GHCR, Docker (Multi-stage), Nginx (Certbot SSL), AWS EC2 (Ubuntu)
->>>>>>> 50b1b6c (Update README with CI/CD and cloud deployment details)
