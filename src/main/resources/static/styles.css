@@ -391,6 +391,9 @@ button#fetchBtn:disabled { opacity: 0.5; cursor: not-allowed; }
     border: 1px solid var(--border);
     border-radius: 6px;
     overflow: hidden;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 .markdown-body th {
@@ -679,5 +682,36 @@ button#fetchBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 640px) {
     .brief-card {
         padding: 1.25rem;
+    }
+}
+
+/* Mobile-responsive table handling */
+@media (max-width: 768px) {
+    .markdown-body table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        min-width: 600px;
+    }
+    
+    .markdown-body th,
+    .markdown-body td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Improved mobile navbar overlap fix using CSS viewport units and env() */
+@media (max-width: 768px) {
+    .chat-input-area {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    
+    .chat-panel {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    
+    .chat-messages {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 }
