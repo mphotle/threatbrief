@@ -23,9 +23,11 @@ dependencies {
 	implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
 	implementation("org.springframework.boot:spring-boot-starter-json")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
+	implementation("dev.langchain4j:langchain4j:1.22.0")
+	implementation("dev.langchain4j:langchain4j-open-ai:1.22.0")
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 	testCompileOnly("org.projectlombok:lombok")
@@ -37,5 +39,10 @@ layout.buildDirectory.set(file("/tmp/threatbrief-build"))
 
 tasks.withType<Test> {
 	useJUnitPlatform()
-	jvmArgs("-XX:+EnableDynamicAgentLoading", "-Dnet.bytebuddy.experimental=true")
+	jvmArgs(
+		"-XX:+EnableDynamicAgentLoading",
+		"-Dnet.bytebuddy.experimental=true",
+		"--enable-native-access=ALL-UNNAMED",
+		"-Xshare:off"
+	)
 }

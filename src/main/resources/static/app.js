@@ -31,7 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update range badge
     const badgeOptions = { month: 'short', day: 'numeric', timeZone: 'UTC' };
-    dateBadge.textContent = `${minDateUTC.toLocaleDateString('en-US', badgeOptions)} – ${todayUTC.toLocaleDateString('en-US', badgeOptions)}`;
+    const minFormatted = minDateUTC.toLocaleDateString('en-US', badgeOptions);
+    const todayFormatted = todayUTC.toLocaleDateString('en-US', badgeOptions);
+    dateBadge.textContent = `${minFormatted} – ${todayFormatted}`;
 
     // Build 14 quick-select pill models
     const validDates = [];
@@ -45,7 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (i === 1) title = 'Yesterday';
         else title = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
 
-        const dateSub = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+        const dateSub = d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'UTC'
+        });
         validDates.push({ dateStr: isoStr, title: title, sub: dateSub });
     }
 
@@ -107,6 +113,29 @@ document.addEventListener('DOMContentLoaded', () => {
         briefContent.replaceChildren();
     }
 
+    function renderMarkdown(container, markdownText) {
+        container.replaceChildren();
+        if (typeof marked !== 'undefined' && marked.parse) {
+            const rawHtml = marked.parse(markdownText);
+            const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
+            const dangerousElements = doc.querySelectorAll('script, iframe, object, embed, form');
+            dangerousElements.forEach(el => el.remove());
+            const allElements = doc.querySelectorAll('*');
+            allElements.forEach(el => {
+                for (const attr of Array.from(el.attributes)) {
+                    const isInlineHandler = attr.name.startsWith('on');
+                    const isJsProtocol = attr.value.trim().toLowerCase().startsWith('javascript:');
+                    if (isInlineHandler || isJsProtocol) {
+                        el.removeAttribute(attr.name);
+                    }
+                }
+            });
+            container.append(...doc.body.childNodes);
+        } else {
+            container.textContent = markdownText;
+        }
+    }
+
     function showBriefing(data, selectedDate) {
         loadingState.hidden = true;
         errorBanner.hidden = true;
@@ -122,21 +151,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 cveCountBadge.hidden = true;
             }
             metaBar.hidden = false;
-
-            if (typeof marked !== 'undefined' && marked.parse) {
-                briefContent.innerHTML = marked.parse(data.content);
-            } else {
-                briefContent.textContent = data.content;
-            }
+            renderMarkdown(briefContent, data.content);
         } else if (typeof data === 'string') {
             metaBar.hidden = true;
-            if (typeof marked !== 'undefined' && marked.parse) {
-                briefContent.innerHTML = marked.parse(data);
-            } else {
-                briefContent.textContent = data;
-            }
+            renderMarkdown(briefContent, data);
         } else {
             metaBar.hidden = true;
+            briefContent.replaceChildren();
             briefContent.textContent = `No briefing content available for ${selectedDate}.`;
         }
     }
@@ -175,4 +196,145 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize UI
     renderPills();
     loadBrief(activeDateStr);
+
+    // Chat functionality
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const chatPanel = document.getElementById('chatPanel');
+    const chatCloseBtn = document.getElementById('chatCloseBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+
+    // Conversation history (client-side only)
+    let conversation = [];
+
+    function openChat() {
+        chatPanel.classList.add('open');
+        document.body.classList.add('chat-open');
+        if (chatToggleBtn) {
+            chatToggleBtn.style.display = 'none';
+        }
+    }
+
+    function closeChat() {
+        chatPanel.classList.remove('open');
+        document.body.classList.remove('chat-open');
+        if (chatToggleBtn) {
+            chatToggleBtn.style.display = 'flex';
+        }
+    }
+
+    if (chatToggleBtn) {
+        chatToggleBtn.addEventListener('click', openChat);
+    }
+
+    if (chatCloseBtn) {
+        chatCloseBtn.addEventListener('click', closeChat);
+    }
+
+    function addMessageToChat(role, content) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${role}`;
+        if (role === 'assistant') {
+            renderMarkdown(msgDiv, content);
+        } else {
+            msgDiv.textContent = content;
+        }
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function setChatInputEnabled(enabled) {
+        chatInput.disabled = !enabled;
+        chatSendBtn.disabled = !enabled;
+    }
+
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'chat-message assistant typing-indicator';
+        typingDiv.id = 'typingIndicator';
+        for (let i = 0; i < 3; i++) {
+            typingDiv.appendChild(document.createElement('span'));
+        }
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const typingDiv = document.getElementById('typingIndicator');
+        if (typingDiv) {
+            typingDiv.remove();
+        }
+    }
+
+    async function sendMessage() {
+        const content = chatInput.value.trim();
+        if (!content) return;
+
+        addMessageToChat('user', content);
+        conversation.push({ role: 'user', content: content });
+        chatInput.value = '';
+        setChatInputEnabled(false);
+        showTypingIndicator();
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: conversation })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            const assistantMessage = data.message;
+
+            removeTypingIndicator();
+            addMessageToChat('assistant', assistantMessage.content);
+            conversation.push(assistantMessage);
+
+            if (conversation.length > 10) {
+                conversation = conversation.slice(-10);
+            }
+        } catch (err) {
+            removeTypingIndicator();
+            addMessageToChat('assistant', 'Sorry, something went wrong: ' + err.message);
+        } finally {
+            setChatInputEnabled(true);
+            chatInput.focus();
+        }
+    }
+
+    if (chatSendBtn) {
+        chatSendBtn.addEventListener('click', sendMessage);
+    }
+
+    if (chatInput) {
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+
+    // Show default welcome message
+    const welcomeLines = [
+        "Hey! I'm your ThreatBrief Assistant. I can help you with:",
+        "",
+        "- **Vulnerability counts** for any date in the past 14 days",
+        "- **Top vulnerabilities** ranked by severity",
+        "- **Recent dates** with available threat briefs",
+        "",
+        "Ask me anything about the threat landscape!"
+    ];
+    addMessageToChat('assistant', welcomeLines.join('\n'));
+
+    // Open chat by default on large screens
+    if (window.innerWidth >= 1024) {
+        openChat();
+    }
 });
