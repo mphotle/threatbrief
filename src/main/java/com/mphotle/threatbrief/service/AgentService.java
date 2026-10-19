@@ -128,12 +128,12 @@ public class AgentService {
           .append(") and produce a comprehensive, executive-ready Security Threat Intelligence Briefing formatted in clean Markdown.\n\n");
         sb.append("Provide a thorough, in-depth analysis. Avoid overly brief bullet points or superficial summaries.\n");
         sb.append("Output ONLY the final markdown report. Do NOT include any introductory remarks, chain-of-thought monologue,");
-        sb.append("reasoning notes, or conversational filler. Start your response directly with the top-level header '# Executive Threat Briefing - ")
+        sb.append("reasoning notes, or conversational filler. Start your response directly with the top-level header '# Executive Threat Briefing - ");
         sb.append("YOU MUST NOT include 'prepared by' and a date at the end of the output\n\n");
         sb.append("YOU MUST NOT use any tables at all in the threat brief.");
         sb.append(vulnerabilities.date()).append("'.\n\n");
         sb.append("Structure the briefing with the following sections:\n");
-        sb.append("Generally prefer paragraph form but use point form where needed.")
+        sb.append("Generally prefer paragraph form but use point form where needed.");
         sb.append("# Executive Threat Briefing - ").append(vulnerabilities.date()).append("\n\n");
         sb.append("## 1. Executive Summary\n");
         sb.append("Provide a detailed 2-3 paragraph strategic overview of the threat landscape for this day. Synthesize the overall risk posture, severity distribution, predominant exploit mechanisms, and potential operational impact on organizations.\n\n");
