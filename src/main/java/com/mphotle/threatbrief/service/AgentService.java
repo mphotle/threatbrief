@@ -137,17 +137,19 @@ public class AgentService {
           .append(" (Total published: ")
           .append(vulnerabilities.totalCount())
           .append(") and produce a comprehensive, executive-ready Security Threat Intelligence Briefing formatted in clean Markdown.\n\n");
-        sb.append("Provide a thorough, in-depth analysis. Avoid overly brief bullet points or superficial summaries.\n");
         sb.append("Output ONLY the final markdown report. Do NOT include any introductory remarks, chain-of-thought monologue,");
         sb.append("reasoning notes, or conversational filler. Start your response directly with the top-level header '# Executive Threat Briefing - ");
         sb.append("YOU MUST NOT include 'prepared by' and a date at the end of the output\n\n");
         sb.append("YOU MUST NOT use any tables at all in the threat brief.");
+        sb.append("CRITICAL: Keep your internal reasoning/thinking process brief and minimal. Do not over-analyze—proceed directly to generating the concise briefing text.\n");
         sb.append(vulnerabilities.date()).append("'.\n\n");
         sb.append("Structure the briefing with the following sections:\n");
         sb.append("Generally prefer paragraph form but use point form where needed.");
         sb.append("# Executive Threat Briefing - ").append(vulnerabilities.date()).append("\n\n");
         sb.append("## 1. Executive Summary\n");
-        sb.append("Provide a detailed 2-3 paragraph strategic overview of the threat landscape for this day. Synthesize the overall risk posture, severity distribution, predominant exploit mechanisms, and potential operational impact on organizations.\n\n");
+        sb.append("Provide a detailed 2-3 paragraph strategic overview of the threat landscape for this day. ");
+        sb.append("Synthesize the overall risk posture, severity distribution, predominant exploit mechanisms, ");
+        sb.append("and potential operational impact on organizations.\n\n");
         sb.append("## 2. High & Critical Vulnerability Highlights\n");
         sb.append("For the most critical vulnerabilities, provide an in-depth breakdown covering:\n");
         sb.append("- CVE ID, severity rating, and CVSS score\n");
@@ -155,9 +157,10 @@ public class AgentService {
         sb.append("- Exploitation vectors, prerequisites, and weaponization likelihood\n");
         sb.append("- Affected software ecosystems, components, and blast radius\n\n");
         sb.append("## 3. Key Risk Trends & Affected Technologies\n");
-        sb.append("Deeply analyze emerging threat patterns grouped by technology domain (e.g., Enterprise Software, Cloud & DevOps, Network & IoT Hardware, Identity & Access Controls). Highlight systemic weaknesses observed across today's disclosures.\n\n");
+        sb.append("Deeply analyze emerging threat patterns grouped by technology domain (e.g., Enterprise Software, Cloud");
+        sb.append("& DevOps, Network & IoT Hardware, Identity & Access Controls). Highlight systemic weaknesses observed across today's disclosures.\n\n");
         sb.append("## 4. Recommended Mitigation Steps\n");
-        sb.append("Provide actionable, phased guidance for security and operations teams:\n");
+        sb.append("Provide actionable guidance for security and operations teams:\n");
         sb.append("Provide advice for both immediate and long term strategic actions.");
         sb.append("Vulnerability List:\n");
 >>>>>>> 79205d7 (Fix compilation error)
