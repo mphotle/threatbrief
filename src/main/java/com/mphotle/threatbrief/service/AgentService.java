@@ -11,18 +11,26 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
 /**
  * Service responsible for orchestrating prompt construction and invoking the configured {@link ChatModel}.
  * <p>
- * Filters, ranks, and truncates daily vulnerability data to optimize LLM token context windows before generating 
+ * Filters, ranks, and truncates daily vulnerability data to optimize LLM token context windows before generating
  * structured Markdown threat briefings. Also provides a conversational agent with tool access.
+ * </p>
+ * <p>
+ * Prompt templates are loaded from {@code src/main/resources/prompts/} to keep business logic
+ * and natural-language instructions cleanly separated.
  * </p>
  */
 @Service
@@ -30,11 +38,15 @@ public class AgentService {
 
     private final ChatModel chatModel;
     private final Tools tools;
+    private final String briefingTemplate;
+    private final String chatSystemPrompt;
     private static final int MAX_DESCRIPTION_LENGTH = 800;
 
     public AgentService(ChatModel chatModel, Tools tools) {
         this.chatModel = chatModel;
         this.tools = tools;
+        this.briefingTemplate = loadPrompt("prompts/briefing-system.md");
+        this.chatSystemPrompt = loadPrompt("prompts/chat-system.md");
     }
 
     public Mono<String> generateBrief(DailyVulnerabilities vulnerabilities) {
@@ -53,11 +65,7 @@ public class AgentService {
         return Mono.fromCallable(() -> {
             ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(10);
 
-            chatMemory.add(SystemMessage.from(
-                "You are a helpful ThreatBrief Assistant. You have access to tools for looking up " +
-                "vulnerability data. Describe what you can do in natural, user-friendly terms without" + 
-                "mentioning internal function names."
-            ));
+            chatMemory.add(SystemMessage.from(chatSystemPrompt));
 
             if (messages != null) {
                 for (int i = 0; i < messages.size() - 1; i++) {
@@ -119,41 +127,9 @@ public class AgentService {
     }
 
     private String buildPrompt(DailyVulnerabilities vulnerabilities) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("You are an expert cybersecurity threat intelligence analyst. ");
-        sb.append("Analyze the following vulnerabilities reported on ")
-          .append(vulnerabilities.date())
-          .append(" (Total published: ")
-          .append(vulnerabilities.totalCount())
-          .append(") and produce a comprehensive, executive-ready Security Threat Intelligence Briefing formatted in clean Markdown.\n\n");
-        sb.append("Output ONLY the final markdown report. Do NOT include any introductory remarks, chain-of-thought monologue,");
-        sb.append("reasoning notes, or conversational filler. Start your response directly with the top-level header '# Executive Threat Briefing - ");
-        sb.append("YOU MUST NOT include 'prepared by' and a date at the end of the output\n\n");
-        sb.append("YOU MUST NOT use any tables at all in the threat brief.");
-        sb.append("CRITICAL: Keep your internal reasoning/thinking process brief and minimal. Do not over-analyze—proceed directly to generating the concise briefing text.\n");
-        sb.append(vulnerabilities.date()).append("'.\n\n");
-        sb.append("Structure the briefing with the following sections:\n");
-        sb.append("Generally prefer paragraph form but use point form where needed.");
-        sb.append("# Executive Threat Briefing - ").append(vulnerabilities.date()).append("\n\n");
-        sb.append("## 1. Executive Summary\n");
-        sb.append("Provide a detailed 2-3 paragraph strategic overview of the threat landscape for this day. ");
-        sb.append("Synthesize the overall risk posture, severity distribution, predominant exploit mechanisms, ");
-        sb.append("and potential operational impact on organizations.\n\n");
-        sb.append("## 2. High & Critical Vulnerability Highlights\n");
-        sb.append("For the most critical vulnerabilities, provide an in-depth breakdown covering:\n");
-        sb.append("- CVE ID, severity rating, and CVSS score\n");
-        sb.append("- Technical root cause and mechanism of failure\n");
-        sb.append("- Exploitation vectors, prerequisites, and weaponization likelihood\n");
-        sb.append("- Affected software ecosystems, components, and blast radius\n\n");
-        sb.append("## 3. Key Risk Trends & Affected Technologies\n");
-        sb.append("Deeply analyze emerging threat patterns grouped by technology domain (e.g., Enterprise Software, Cloud");
-        sb.append("& DevOps, Network & IoT Hardware, Identity & Access Controls). Highlight systemic weaknesses observed across today's disclosures.\n\n");
-        sb.append("## 4. Recommended Mitigation Steps\n");
-        sb.append("Provide actionable guidance for security and operations teams:\n");
-        sb.append("Provide advice for both immediate and long term strategic actions.");
-        sb.append("Vulnerability List:\n");
+        StringBuilder vulnList = new StringBuilder();
         if (vulnerabilities.items().isEmpty()) {
-            sb.append("No vulnerabilities recorded for this date as of yet.\n");
+            vulnList.append("No vulnerabilities recorded for this date as of yet.\n");
         } else {
             List<VulnerabilityItem> topItems = vulnerabilities.items().stream()
                     .sorted((a, b) -> Double.compare(b.score(), a.score()))
@@ -164,11 +140,26 @@ public class AgentService {
                 if (desc.length() > MAX_DESCRIPTION_LENGTH) {
                     desc = desc.substring(0, MAX_DESCRIPTION_LENGTH - 3) + "...";
                 }
-                sb.append("- [")
-                  .append(item.severity()).append(" | Score: ").append(item.score())
-                  .append("] ").append(item.id()).append(": ").append(desc).append("\n");
+                vulnList.append("- [")
+                        .append(item.severity())
+                        .append(" | Score: ").append(item.score())
+                        .append("] ").append(item.id())
+                        .append(": ").append(desc).append("\n");
             }
         }
-        return sb.toString();
+
+        return briefingTemplate
+                .replace("{{date}}", vulnerabilities.date().toString())
+                .replace("{{totalCount}}", String.valueOf(vulnerabilities.totalCount()))
+                .replace("{{vulnerabilityList}}", vulnList.toString());
+    }
+
+    private static String loadPrompt(String resourcePath) {
+        try (InputStream is = new ClassPathResource(resourcePath).getInputStream()) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8).trim();
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Failed to load prompt template from " + resourcePath, e);
+        }
     }
 }
