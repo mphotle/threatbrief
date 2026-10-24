@@ -28,7 +28,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
  * Database (NVD) REST API.
  * <p>
  * Implements in-memory Caffeine caching, WebClient error handling, and exponential backoff retries for transient 
- * downstream server errors.
+ * downstream server errors. Callers may bypass the cache lookup via the {@code forceRefresh} flag, in which case 
+ * a fresh response is fetched and the cache entry is overwritten.
  * </p>
  */
 @Service
@@ -49,9 +50,15 @@ public class NvdService {
     }
 
     public Mono<DailyVulnerabilities> fetchVulnerabilitiesForDate(LocalDate date) {
-        DailyVulnerabilities cachedVulnerabilities = cache.getIfPresent(date);
-        if (cachedVulnerabilities != null) {
-            return Mono.just(cachedVulnerabilities);
+        return fetchVulnerabilitiesForDate(date, false);
+    }
+
+    public Mono<DailyVulnerabilities> fetchVulnerabilitiesForDate(LocalDate date, boolean forceRefresh) {
+        if (!forceRefresh) {
+            DailyVulnerabilities cachedVulnerabilities = cache.getIfPresent(date);
+            if (cachedVulnerabilities != null) {
+                return Mono.just(cachedVulnerabilities);
+            }
         }
 
         String startDateTime = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";

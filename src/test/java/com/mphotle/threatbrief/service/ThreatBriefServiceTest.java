@@ -24,6 +24,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +58,7 @@ class ThreatBriefServiceTest {
         );
         String mockMarkdown = "# Executive Briefing";
 
-        when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(mockVulnerabilities));
+        when(nvdService.fetchVulnerabilitiesForDate(validDate, false)).thenReturn(Mono.just(mockVulnerabilities));
         when(agentService.generateBrief(mockVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
 
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
@@ -79,7 +80,7 @@ class ThreatBriefServiceTest {
         );
         String mockMarkdown = "# Executive Briefing - Zero";
 
-        when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(zeroVulnerabilities));
+        when(nvdService.fetchVulnerabilitiesForDate(validDate, false)).thenReturn(Mono.just(zeroVulnerabilities));
         when(agentService.generateBrief(zeroVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
 
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
@@ -98,7 +99,7 @@ class ThreatBriefServiceTest {
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
 
         assertThat(result).isEqualTo(existingBrief);
-        verify(nvdService, never()).fetchVulnerabilitiesForDate(any());
+        verify(nvdService, never()).fetchVulnerabilitiesForDate(any(), anyBoolean());
         verify(agentService, never()).generateBrief(any());
     }
 
