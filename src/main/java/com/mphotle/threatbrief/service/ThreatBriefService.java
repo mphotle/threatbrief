@@ -18,8 +18,7 @@ import java.time.ZoneOffset;
  * and date range validation.
  * <p>
  * Integrates {@link NvdService} and {@link AgentService} to synthesize intelligence reports within a strict 14-day 
- * rolling window, supporting rate-throttled background pre-generation. Callers may bypass the cache lookup via the 
- * {@code forceRefresh} flag, in which case a fresh brief is generated and the cache entry is overwritten.
+ * rolling window, supporting rate-throttled background pre-generation.
  * </p>
  */
 @Slf4j
@@ -41,20 +40,14 @@ public class ThreatBriefService {
     }
 
     public Mono<ThreatBrief> getBriefForDate(LocalDate date) {
-        return getBriefForDate(date, false);
-    }
-
-    public Mono<ThreatBrief> getBriefForDate(LocalDate date, boolean forceRefresh) {
         validateDateRange(date);
 
-        if (!forceRefresh) {
-            ThreatBrief cachedBrief = threatBriefCache.getIfPresent(date);
-            if (cachedBrief != null) {
-                return Mono.just(cachedBrief);
-            }
+        ThreatBrief cachedBrief = threatBriefCache.getIfPresent(date);
+        if (cachedBrief != null) {
+            return Mono.just(cachedBrief);
         }
 
-        return nvdService.fetchVulnerabilitiesForDate(date, forceRefresh)
+        return nvdService.fetchVulnerabilitiesForDate(date)
                 .flatMap(vulnerabilities -> agentService.generateBrief(vulnerabilities)
                         .map(content -> new ThreatBrief(
                                 date,
@@ -76,8 +69,7 @@ public class ThreatBriefService {
                 .concatMap(i -> Mono.delay(i == 0 ? Duration.ZERO : Duration.ofSeconds(6))
                         .then(Mono.defer(() -> {
                             LocalDate date = today.minusDays(i);
-                            // Refresh cache for current day to include newly published vulnerabilities for the day
-                            return getBriefForDate(date, i == 0)
+                            return getBriefForDate(date)
                                     .doOnNext(brief -> log.info("Pre-generated brief for {}", date))
                                     .doOnError(error -> log.warn("Failed to pre-generate brief for {}: {}", date, error.getMessage()))
                                     .onErrorResume(e -> Mono.empty());
