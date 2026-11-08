@@ -77,6 +77,9 @@ Beyond static briefings, ThreatBrief provides an interactive conversational assi
 ### Resource-Conscious Cloud Runtime
 Deploying on a memory-constrained AWS EC2 instance required explicit resource safeguards. The build pipeline uses multi-stage Docker builds paired with JVM heap boundaries (`-Xmx512m`) and host-level swap allocation to eliminate out-of-memory crashes during compilation. In production, the application runs inside a lightweight Temurin Alpine JRE container as a restricted non-root user (`threatuser`), isolated behind an Nginx reverse proxy handling SSL termination and port forwarding.
 
+### In-Memory Rate Limiting & Throttling
+To protect downstream LLM credits and mitigate denial-of-service attempts, incoming requests are filtered by a non-blocking `RateLimitingWebFilter` using a Caffeine-backed token bucket algorithm. Sensitive endpoints enforce distinct client IP thresholds (10 messages/minute for `/chat` and 30 requests/minute for `/brief`) resolved through proxy headers (`X-Forwarded-For` / `X-Real-IP`). Exceeded thresholds return HTTP 429 with `Retry-After` headers and informative UI notifications.
+
 ### Automated CI/CD & Cloud Deployment
 Deployments are fully automated using a GitHub Actions pipeline triggered on pushes to `main`. The workflow compiles the application, runs unit tests, and builds a multi-stage Docker image published to GitHub Container Registry (GHCR). It then opens a secure SSH session to the AWS EC2 host to pull the new image, gracefully swap the running container, and prune obsolete layers—ensuring reliable, zero-touch deployments without manual server intervention.
 

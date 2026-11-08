@@ -105,8 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
         briefContent.replaceChildren();
     }
 
-    function showError(message) {
-        errorMessage.textContent = `${message}. Ensure the backend service is running.`;
+    function showError(message, hint = 'Ensure the backend service is running.') {
+        errorMessage.textContent = hint ? `${message}. ${hint}` : message;
         errorBanner.hidden = false;
         loadingState.hidden = true;
         metaBar.hidden = true;
@@ -172,6 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(apiUrl);
             
             if (!response.ok) {
+                if (response.status === 429) {
+                    const errorJson = await response.json().catch(() => null);
+                    const msg = (errorJson && errorJson.message)
+                        ? errorJson.message
+                        : 'Rate limit reached. Please wait a moment.';
+                    showError(msg, '');
+                    return;
+                }
                 const errorText = await response.text().catch(() => '');
                 throw new Error(`HTTP ${response.status}: ${response.statusText || errorText}`);
             }
@@ -285,6 +293,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
+                if (response.status === 429) {
+                    const errorJson = await response.json().catch(() => null);
+                    const fallbackMsg = "You're sending messages too fast (limit: 10/min). "
+                        + "Please wait a moment before trying again.";
+                    const msg = (errorJson && errorJson.message)
+                        ? `⏳ ${errorJson.message}`
+                        : `⏳ ${fallbackMsg}`;
+                    removeTypingIndicator();
+                    addMessageToChat('assistant', msg);
+                    return;
+                }
                 const errorText = await response.text().catch(() => '');
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
