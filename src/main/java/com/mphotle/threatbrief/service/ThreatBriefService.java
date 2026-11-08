@@ -51,6 +51,7 @@ public class ThreatBriefService {
         if (!forceRefresh) {
             ThreatBrief cachedBrief = threatBriefCache.getIfPresent(date);
             if (cachedBrief != null) {
+                log.info("Serving cached threat brief for {}", date);
                 return Mono.just(cachedBrief);
             }
         }
@@ -63,12 +64,12 @@ public class ThreatBriefService {
                         ThreatBrief cachedBrief = threatBriefCache.getIfPresent(date);
                         if (cachedBrief != null
                                 && cachedBrief.totalCount() == vulnerabilities.totalCount()) {
-                            log.info("Skipping brief regeneration for {} "
-                                    + "— vulnerability count unchanged at {}",
+                            log.info("Threat brief for {} is up-to-date ({} vulnerabilities) — skipped LLM regeneration",
                                     date, vulnerabilities.totalCount());
                             return Mono.just(cachedBrief);
                         }
                     }
+                    log.info("Generating new threat brief for {} ({} vulnerabilities)", date, vulnerabilities.totalCount());
                     return agentService.generateBrief(vulnerabilities)
                             .map(content -> new ThreatBrief(
                                     date,
@@ -87,16 +88,27 @@ public class ThreatBriefService {
     public void pregenerateBriefsForPast14Days() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         Flux.range(0, 15)
-                .concatMap(i -> Mono.delay(i == 0 ? Duration.ZERO : Duration.ofSeconds(6))
-                        .then(Mono.defer(() -> {
-                            LocalDate date = today.minusDays(i);
-                            // Force-refresh today's cache so newly published CVEs are picked up
-                            return getBriefForDate(date, i == 0)
-                                    .doOnNext(brief -> log.info("Pre-generated brief for {}", date))
+                .map(today::minusDays)
+                .filter(date -> {
+                    boolean isToday = date.equals(today);
+                    if (isToday) {
+                        return true;
+                    }
+                    boolean missingFromCache = threatBriefCache.getIfPresent(date) == null;
+                    if (!missingFromCache) {
+                        log.debug("Skipping pre-generation for {} — already cached", date);
+                    }
+                    return missingFromCache;
+                })
+                .concatMap(date -> {
+                    boolean isToday = date.equals(today);
+                    Duration delay = isToday ? Duration.ZERO : Duration.ofSeconds(6);
+                    return Mono.delay(delay)
+                            .then(Mono.defer(() -> getBriefForDate(date, isToday)
+                                    .doOnNext(brief -> log.info("Completed pre-generation for {}", date))
                                     .doOnError(error -> log.warn("Failed to pre-generate brief for {}: {}", date, error.getMessage()))
-                                    .onErrorResume(e -> Mono.empty());
-                        }))
-                )
+                                    .onErrorResume(e -> Mono.empty())));
+                })
                 .subscribe();
     }
 

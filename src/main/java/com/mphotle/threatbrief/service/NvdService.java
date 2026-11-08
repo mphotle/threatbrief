@@ -14,6 +14,7 @@ import com.mphotle.threatbrief.exception.NvdServiceException;
 import com.mphotle.threatbrief.model.DailyVulnerabilities;
 import com.mphotle.threatbrief.parser.NvdResponseParser;
 
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -32,6 +33,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
  * a fresh response is fetched and the cache entry is overwritten.
  * </p>
  */
+@Slf4j
 @Service
 public class NvdService {
 
@@ -57,9 +59,12 @@ public class NvdService {
         if (!forceRefresh) {
             DailyVulnerabilities cachedVulnerabilities = cache.getIfPresent(date);
             if (cachedVulnerabilities != null) {
+                log.debug("Serving cached NVD vulnerabilities for {}", date);
                 return Mono.just(cachedVulnerabilities);
             }
         }
+
+        log.info("Fetching NVD vulnerabilities from API for {} (forceRefresh={})", date, forceRefresh);
 
         String startDateTime = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
         String endDateTime = date.atTime(23, 59, 59).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
@@ -79,6 +84,7 @@ public class NvdService {
         return dailyVulnerabilities.doOnNext(vulnerabilities -> {
                 if (vulnerabilities.totalCount() > 0) {
                     cache.put(date, vulnerabilities);
+                    log.debug("Cached {} NVD vulnerabilities for {}", vulnerabilities.totalCount(), date);
                 }
             });
     }
