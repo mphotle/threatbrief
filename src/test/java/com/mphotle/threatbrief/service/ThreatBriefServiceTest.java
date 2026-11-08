@@ -1,7 +1,6 @@
 package com.mphotle.threatbrief.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.mphotle.threatbrief.config.CacheConfig;
 import com.mphotle.threatbrief.exception.InvalidDateRangeException;
 import com.mphotle.threatbrief.model.DailyVulnerabilities;
@@ -17,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +24,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +58,7 @@ class ThreatBriefServiceTest {
         );
         String mockMarkdown = "# Executive Briefing";
 
-        when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(mockVulnerabilities));
+        when(nvdService.fetchVulnerabilitiesForDate(validDate, false)).thenReturn(Mono.just(mockVulnerabilities));
         when(agentService.generateBrief(mockVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
 
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
@@ -79,7 +80,7 @@ class ThreatBriefServiceTest {
         );
         String mockMarkdown = "# Executive Briefing - Zero";
 
-        when(nvdService.fetchVulnerabilitiesForDate(validDate)).thenReturn(Mono.just(zeroVulnerabilities));
+        when(nvdService.fetchVulnerabilitiesForDate(validDate, false)).thenReturn(Mono.just(zeroVulnerabilities));
         when(agentService.generateBrief(zeroVulnerabilities)).thenReturn(Mono.just(mockMarkdown));
 
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
@@ -98,8 +99,60 @@ class ThreatBriefServiceTest {
         ThreatBrief result = threatBriefService.getBriefForDate(validDate).block();
 
         assertThat(result).isEqualTo(existingBrief);
-        verify(nvdService, never()).fetchVulnerabilitiesForDate(any());
+        verify(nvdService, never()).fetchVulnerabilitiesForDate(any(), anyBoolean());
         verify(agentService, never()).generateBrief(any());
+    }
+
+    @Test
+    void getBriefForDate_when_forceRefresh_and_count_unchanged_returns_cached_without_calling_agent() {
+        LocalDate validDate = LocalDate.now(ZoneOffset.UTC);
+        ThreatBrief existingBrief = new ThreatBrief(validDate, "# Cached Brief", 2, LocalDateTime.now(ZoneOffset.UTC));
+        threatBriefCache.put(validDate, existingBrief);
+
+        DailyVulnerabilities fetchedVulnerabilities = new DailyVulnerabilities(
+                validDate,
+                2,
+                List.of(
+                        new VulnerabilityItem("CVE-2026-0001", "HIGH", 8.0, "Bug 1"),
+                        new VulnerabilityItem("CVE-2026-0002", "MEDIUM", 5.0, "Bug 2")
+                )
+        );
+
+        when(nvdService.fetchVulnerabilitiesForDate(validDate, true)).thenReturn(Mono.just(fetchedVulnerabilities));
+
+        ThreatBrief result = threatBriefService.getBriefForDate(validDate, true).block();
+
+        assertThat(result).isEqualTo(existingBrief);
+        verify(nvdService).fetchVulnerabilitiesForDate(validDate, true);
+        verify(agentService, never()).generateBrief(any());
+    }
+
+    @Test
+    void getBriefForDate_when_forceRefresh_and_count_changed_regenerates_brief() {
+        LocalDate validDate = LocalDate.now(ZoneOffset.UTC);
+        ThreatBrief existingBrief = new ThreatBrief(validDate, "# Old Brief", 1, LocalDateTime.now(ZoneOffset.UTC));
+        threatBriefCache.put(validDate, existingBrief);
+
+        DailyVulnerabilities fetchedVulnerabilities = new DailyVulnerabilities(
+                validDate,
+                2,
+                List.of(
+                        new VulnerabilityItem("CVE-2026-0001", "HIGH", 8.0, "Bug 1"),
+                        new VulnerabilityItem("CVE-2026-0002", "MEDIUM", 5.0, "Bug 2")
+                )
+        );
+        String updatedMarkdown = "# Updated Executive Briefing";
+
+        when(nvdService.fetchVulnerabilitiesForDate(validDate, true)).thenReturn(Mono.just(fetchedVulnerabilities));
+        when(agentService.generateBrief(fetchedVulnerabilities)).thenReturn(Mono.just(updatedMarkdown));
+
+        ThreatBrief result = threatBriefService.getBriefForDate(validDate, true).block();
+
+        assertThat(result).isNotNull();
+        assertThat(result.content()).isEqualTo(updatedMarkdown);
+        assertThat(result.totalCount()).isEqualTo(2);
+        assertThat(threatBriefCache.getIfPresent(validDate)).isEqualTo(result);
+        verify(agentService).generateBrief(fetchedVulnerabilities);
     }
 
     @Test

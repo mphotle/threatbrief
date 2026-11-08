@@ -158,6 +158,27 @@ class NvdServiceTest {
     }
 
     @Test
+    void fetchVulnerabilitiesForDate_when_forceRefresh_true_bypasses_cache() {
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setBody(completeMockJsonResponseBody));
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setBody(completeMockJsonResponseBody));
+
+        LocalDate targetDate = LocalDate.of(2026, 9, 15);
+
+        DailyVulnerabilities firstCall = nvdService.fetchVulnerabilitiesForDate(targetDate).block();
+        DailyVulnerabilities secondCall = nvdService.fetchVulnerabilitiesForDate(targetDate, true).block();
+
+        assertThat(firstCall).isNotNull();
+        assertThat(secondCall).isNotNull();
+        assertThat(mockWebServer.getRequestCount()).isEqualTo(2);
+    }
+
+    @Test
     void fetchVulnerabilitiesForDate_when_empty_response_does_not_populate_cache() {
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
