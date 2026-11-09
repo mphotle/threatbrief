@@ -19,7 +19,7 @@ flowchart TD
     
     CheckBriefCache -->|"No (Cache Miss)"| CheckNvdCache{"In NVD<br/>Caffeine Cache?"}
     
-    CheckNvdCache -->|"Yes (Cache Hit)"| PrepPrompt["LlmService: Prepare Prompt"]
+    CheckNvdCache -->|"Yes (Cache Hit)"| PrepPrompt["AgentService: Prepare Prompt"]
     
     CheckNvdCache -->|"No (Cache Miss)"| FetchNVD["WebClient: Request NVD REST API"]
     FetchNVD --> Resilience["Apply Retry Backoff on 5xx / Rate Limit Check"]
@@ -28,7 +28,7 @@ flowchart TD
     CacheNVD --> PrepPrompt
     
     PrepPrompt --> FilterCVEs["Sort Top 20 CVEs by Score & Truncate Descriptions under 800 Chars"]
-    FilterCVEs --> CallHF["HuggingFaceProvider: Post to Router API /v1/chat/completions"]
+    FilterCVEs --> CallHF["OpenAiChatModel: Post to Router API /v1/chat/completions"]
     CallHF --> ExtractText["Extract Generated Markdown Content"]
     
     ExtractText --> StoreBriefCache["Cache ThreatBrief Object"]
@@ -53,7 +53,10 @@ To deliver sub-second response times without exceeding LLM context windows or up
 
 ```mermaid
 flowchart TD
-    User([User Submits ChatRequest]) --> ChatController["ChatController<br/>POST /chat"]
+    User([User Submits ChatRequest]) --> RateFilter{"RateLimitingWebFilter<br/>Check IP Token Bucket"}
+    
+    RateFilter -->|"Exceeded"| Throttled(["Return HTTP 429 & Retry-After"])
+    RateFilter -->|"Allowed"| ChatController["ChatController<br/>POST /chat"]
     
     ChatController --> AgentService["AgentService<br/>chat(messages)"]
     
